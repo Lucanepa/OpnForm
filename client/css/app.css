@@ -29,9 +29,9 @@
 
     --color-light-gray: #f8fafc;
 
-    /* Form color variable */
-    --bg-form-color: var(--color-blue-500);
-    --form-color: var(--color-blue-500);
+    /* Form color variable — KSCW brand blue (kscw-customizations) */
+    --bg-form-color: #4A55A2;
+    --form-color: #4A55A2;
 
     /* Create color utility for form color (enables ring-form, bg-form, etc.) */
     --color-form: var(--form-color, --bg-form-color);
