@@ -11,8 +11,8 @@
           <BlockMediaLayout :image="coverMedia" img-class="w-full h-full object-cover" alt="Form cover image" />
         </div>
       </div>
+      <!-- KSCW customization: always render logo, falling back to brand asset -->
       <div
-        v-if="form.logo_picture"
         class="w-full p-5 relative mx-auto"
         :class="[
           !form.cover_picture ? 'pt-20' : '',
@@ -22,8 +22,8 @@
         :style="{ direction: form?.layout_rtl ? 'rtl' : 'ltr' }"
       >
         <img
-          :src="form.logo_picture"
-          :alt="form.seo_meta?.site_name ? `${form.seo_meta.site_name} logo` : 'Form logo'"
+          :src="form.logo_picture || '/kscw-logo.svg'"
+          :alt="form.seo_meta?.site_name ? `${form.seo_meta.site_name} logo` : 'KSC Wiedikon'"
           :class="{ 'top-5': !form.cover_picture, '-top-10': form.cover_picture }"
           class="w-20 h-20 object-contain absolute transition-all"
         >
@@ -257,11 +257,13 @@ const coverMedia = computed(() => ({
   brightness: form.value?.cover_settings?.brightness
 }))
 
-// Hide logo/cover in READ_ONLY and EDIT modes
+// KSCW customization: in public mode, always render the branding block
+// (logo always shows, falls back to KSCW crest if no per-form logo).
+// Hide in READ_ONLY and EDIT modes so admins editing forms don't see it.
 const showBrandingMedia = computed(() => {
   const mode = props.formManager?.mode?.value
   if (mode === FormMode.READ_ONLY || mode === FormMode.EDIT) return false
-  return !!(form.value && (form.value.logo_picture || form.value.cover_picture))
+  return !!form.value
 })
 
 const getFieldWidthClasses = (width) => {

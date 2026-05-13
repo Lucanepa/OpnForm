@@ -5,9 +5,9 @@
       <BlockMediaLayout :image="coverMedia" alt="Form cover image" />
     </div>
 
-    <!-- Fixed logo in top-left -->
-    <div v-if="form.logo_picture" class="absolute top-10 left-10 z-20">
-      <img :src="form.logo_picture" :alt="form.seo_meta?.site_name ? `${form.seo_meta.site_name} logo` : 'Form logo'" class="size-8 md:size-16 object-contain">
+    <!-- KSCW customization: always show logo, falling back to brand asset -->
+    <div class="absolute top-10 left-10 z-20">
+      <img :src="form.logo_picture || '/kscw-logo.svg'" :alt="form.seo_meta?.site_name ? `${form.seo_meta.site_name} logo` : 'KSC Wiedikon'" class="size-8 md:size-16 object-contain">
     </div>
 
     <!-- Progressbar -->
