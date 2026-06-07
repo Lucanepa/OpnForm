@@ -43,9 +43,9 @@
         @click="onDeleteMultiClick"
       />
 
-      <FormExportModal 
+      <FormExportModal
         :form="form"
-        :columns="columnVisibility"
+        :columns="exportColumnVisibility"
         :selected-ids="selectedIds"
       />
 
@@ -232,6 +232,23 @@ const { tableColumns: allColumns, columnVisibility, columnPinning, columnSizing,
 
 const tableColumns = computed(() => {
   return allColumns.value.filter(column => !['actions', 'select'].includes(column.id))
+})
+
+// Columns sent to the export endpoint. The raw columnVisibility map also
+// contains UI-only synthetic columns (select, actions) and conditional meta
+// columns (status, ip_address) that are NOT form properties. The export API
+// validates every key against properties + removed_properties + created_at and
+// 422s on anything else ("The columns contain invalid values: select, actions"),
+// so restrict the payload to keys the backend accepts.
+const exportColumnVisibility = computed(() => {
+  const validIds = new Set([
+    ...(props.form?.properties || []).map(p => p.id),
+    ...(props.form?.removed_properties || []).map(p => p.id),
+    'created_at',
+  ])
+  return Object.fromEntries(
+    Object.entries(columnVisibility.value).filter(([id]) => validIds.has(id))
+  )
 })
 
 const fieldComponents = {
