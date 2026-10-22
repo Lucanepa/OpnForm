@@ -4,22 +4,33 @@ This is a fork of [OpnForm/OpnForm](https://github.com/OpnForm/OpnForm) with min
 
 ## Changes from upstream
 
-All customizations live on the `kscw-customizations` branch. Three files:
+All customizations live on the `kscw-customizations` branch, rebased on the latest upstream **release tag** (not `main`).
+
+### Client
 
 1. **`client/css/app.css`** — `--bg-form-color` / `--form-color` defaulted to `#4A55A2` (KSCW brand blue) instead of `var(--color-blue-500)`.
 2. **`client/components/pages/forms/show/PoweredBy.vue`** — emptied. Hides the "Made with OpnForm" badge on rendered forms. (AGPL-compliant: this fork's source is public, so the modification obligation is satisfied.)
-3. **`client/components/open/tables/OpenTable.vue`** — submission export bugfix. The export modal was passed the raw `columnVisibility` map, which includes UI-only synthetic columns (`select`, `actions`) and conditional meta columns (`status`, `ip_address`). The export API rejects any key that isn't a form property / `removed_property` / `created_at` with `422 "The columns contain invalid values: select, actions"`, so the in-app Export button was broken for every form. Fix adds an `exportColumnVisibility` computed that whitelists valid keys before the POST. **This is a genuine upstream bug** — submit upstream and drop this patch once merged.
+3. **`client/components/open/tables/OpenTable.vue`** — submission export bugfix. The export modal was passed the raw `columnVisibility` map, which includes UI-only synthetic columns (`select`, `actions`) and conditional meta columns (`status`, `ip_address`). The export API rejects any key that isn't a form property / `removed_property` / `created_at` with `422 "The columns contain invalid values: select, actions"`, so the in-app Export button was broken for every form. Fix adds an `exportColumnVisibility` computed that whitelists valid keys before the POST. **This is a genuine upstream bug** — submit upstream and drop this patch once merged. Since v2.6 the backend also accepts `status` and `meta.attribution.*`, so the whitelist includes those (mirror `FormSubmissionExportRequest::rules` if it changes again).
+
+### API (since v2.6.1)
+
+Upstream's `jhumanj/opnform-api` image ships a stale `composer.lock` (69 `composer audit` advisories at v2.6.1: 3 critical, 24 high), and the Laravel 11 email-rule CRLF advisory is only fixed in 12.x. So the fork builds its own API image:
+
+4. **`api/composer.json` / `api/composer.lock`** — `laravel/framework` `^12.0`, `pestphp/pest(-plugin-laravel)` `^3.0`, `enshrined/svg-sanitize` `^1.1.1`; everything else updated within constraints (`spatie/laravel-sitemap` 7, `spatie/laravel-sluggable` 3, `openai-php/client` 0.19, `stripe/stripe-php` 17 held at their majors via `--with`).
+5. **`api/tests/TestHelpers.php`** — `actingAsGuest($guard = null)` to match the Laravel 12 `TestCase` signature; **`api/tests/Unit/Service/Forms/MentionParserTest.php`** — one duplicate test name renamed (Pest 3 rejects duplicates).
+
+Refreshing the lock (PHP 8.3, from `api/`): `composer update -W --no-install --no-scripts --ignore-platform-req='ext-*' --with spatie/laravel-sitemap:^7.3 --with spatie/laravel-sluggable:^3.7 --with openai-php/client:~0.19.0 --with stripe/stripe-php:^17`, then `composer audit --locked`.
 
 ## CI
 
 `.github/workflows/kscw-build.yml`:
-- On push to `kscw-customizations` → builds & pushes `ghcr.io/lucanepa/opnform-client:kscw-latest` (+ version- and SHA-tagged variants)
-- Weekly (Monday 04:00 UTC) → rebases `kscw-customizations` on upstream `main`, rebuilds. If rebase conflicts, workflow fails loudly — manual fix required.
+- On push to `kscw-customizations` → builds & pushes `ghcr.io/lucanepa/opnform-client` **and** `ghcr.io/lucanepa/opnform-api`, each as `kscw-latest`, `kscw-<upstream version>` and `kscw-<sha>`. Runs `composer audit` first (warning only).
+- Weekly (Monday 04:00 UTC) → rebases `kscw-customizations` on the latest upstream release tag, rebuilds. If rebase conflicts, workflow fails loudly — manual fix required. `api/composer.lock` conflicts whenever upstream touches it: take upstream's file, re-run the lock refresh above, commit.
 - Manual `workflow_dispatch` → optional rebase + build.
 
 ## Consumer
 
-Used by KSCW's Coolify-managed OpnForm deployment. To upgrade: nothing — the weekly job keeps the image fresh. To pin: Coolify image tag → `ghcr.io/lucanepa/opnform-client:kscw-<version>`.
+Used by KSCW's Coolify-managed OpnForm deployment (`opnform-ui` ← client image; `opnform-api`, `api-worker`, `api-scheduler` ← API image). Pin both to the same `kscw-<sha>`; client and API must come from the same commit. After recreating api/ui containers, restart the nginx ingress (it caches upstream IPs) and check a live form via `/api/forms/<slug>`, not just the homepage.
 
 ## Conflict-resolution playbook
 
@@ -29,9 +40,10 @@ If the weekly rebase fails (a kscw-customizations patch touches the same lines a
 git clone https://github.com/Lucanepa/OpnForm.git && cd OpnForm
 git checkout kscw-customizations
 git remote add upstream https://github.com/OpnForm/OpnForm.git
-git fetch upstream main
-git rebase upstream/main
-# resolve conflicts in: client/css/app.css, PoweredBy.vue, and/or
+git fetch --tags upstream
+git rebase "$(git tag --list 'v[0-9]*' --sort=-v:refname | head -1)"
+# resolve conflicts in: api/composer.lock (see lock refresh above),
+# client/css/app.css, PoweredBy.vue, and/or
 # components/open/tables/OpenTable.vue (export whitelist patch — keep the
 # exportColumnVisibility computed + the :columns binding on FormExportModal)
 git rebase --continue

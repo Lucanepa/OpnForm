@@ -1,11 +1,14 @@
-name: Build KSCW OpnForm client
+name: Build KSCW OpnForm images
 
 on:
   push:
     branches: [kscw-customizations]
     paths:
       - 'client/**'
+      - 'api/**'
       - 'docker/Dockerfile.client'
+      - 'docker/Dockerfile.api'
+      - 'docker/php-fpm-entrypoint'
       - 'docker/nginx.conf'
       - '.github/workflows/kscw-build.yml'
   schedule:
@@ -13,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       rebase:
-        description: 'Rebase kscw-customizations on upstream main before building'
+        description: 'Rebase kscw-customizations on the latest upstream release before building'
         required: false
         default: 'true'
         type: choice
@@ -21,6 +24,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/lucanepa/opnform-client
+  API_IMAGE_NAME: ghcr.io/lucanepa/opnform-api
   UPSTREAM_URL: https://github.com/OpnForm/OpnForm.git
 
 jobs:
@@ -45,14 +49,17 @@ jobs:
           git config user.name "kscw-bot"
           git config user.email "bot@kscw.ch"
           git remote add upstream "$UPSTREAM"
-          git fetch upstream main
-          UPSTREAM_SHA=$(git rev-parse upstream/main)
-          BASE_SHA=$(git merge-base HEAD upstream/main)
+          git fetch --tags upstream main
+          # Track tagged releases, not main: the API image runs upstream's
+          # migrations against the prod database.
+          RELEASE=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -1)
+          UPSTREAM_SHA=$(git rev-parse "$RELEASE^{commit}")
+          BASE_SHA=$(git merge-base HEAD "$UPSTREAM_SHA")
           if [ "$BASE_SHA" = "$UPSTREAM_SHA" ]; then
-            echo "Already up to date with upstream"
+            echo "Already up to date with upstream $RELEASE"
           else
-            echo "Rebasing on upstream/main ($UPSTREAM_SHA)"
-            if git rebase upstream/main; then
+            echo "Rebasing on upstream $RELEASE ($UPSTREAM_SHA)"
+            if git rebase "$UPSTREAM_SHA"; then
               git push --force-with-lease origin kscw-customizations
               echo "Rebased + pushed"
             else
@@ -65,7 +72,9 @@ jobs:
       - name: Get upstream version tag
         id: version
         run: |
-          VERSION=$(jq -r '.version' client/package.json 2>/dev/null || echo "unknown")
+          git fetch --quiet --tags "$UPSTREAM_URL" || true
+          VERSION=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//')
+          VERSION=${VERSION:-unknown}
           SHA=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
@@ -94,9 +103,33 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64
 
+      - name: Audit API dependencies
+        run: |
+          if ! docker run --rm -v "$PWD/api:/app" -w /app composer:2 \
+              audit --locked --no-interaction --format=plain; then
+            echo "::warning::composer audit reports advisories in api/composer.lock — run composer update"
+          fi
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile.api
+          build-args: |
+            APP_VERSION=kscw-${{ steps.version.outputs.version }}-${{ steps.version.outputs.sha }}
+          push: true
+          tags: |
+            ${{ env.API_IMAGE_NAME }}:kscw-latest
+            ${{ env.API_IMAGE_NAME }}:kscw-${{ steps.version.outputs.version }}
+            ${{ env.API_IMAGE_NAME }}:kscw-${{ steps.version.outputs.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+          platforms: linux/amd64
+
       - name: Summary
         env:
           IMG: ${{ env.IMAGE_NAME }}
+          API_IMG: ${{ env.API_IMAGE_NAME }}
           VER: ${{ steps.version.outputs.version }}
           SHA: ${{ steps.version.outputs.sha }}
         run: |
@@ -107,4 +140,7 @@ jobs:
             echo "- \`$IMG:kscw-latest\`"
             echo "- \`$IMG:kscw-$VER\`"
             echo "- \`$IMG:kscw-$SHA\`"
+            echo "- \`$API_IMG:kscw-latest\`"
+            echo "- \`$API_IMG:kscw-$VER\`"
+            echo "- \`$API_IMG:kscw-$SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
