@@ -207,6 +207,7 @@
 import { useEventListener, refDebounced } from '@vueuse/core'
 import { useTableState } from '~/composables/components/tables/useTableState'
 import FormExportModal from '~/components/open/forms/FormExportModal.vue'
+import { ATTRIBUTION_PARAMETERS, attributionColumnId } from '~/lib/forms/submissionAttribution'
 import OpenText from "./components/OpenText.vue"
 import OpenRichText from "./components/OpenRichText.vue"
 import OpenUrl from "./components/OpenUrl.vue"
@@ -271,14 +272,17 @@ const tableColumns = computed(() => {
 // Columns sent to the export endpoint. The raw columnVisibility map also
 // contains UI-only synthetic columns (select, actions) and conditional meta
 // columns (status, ip_address) that are NOT form properties. The export API
-// validates every key against properties + removed_properties + created_at and
-// 422s on anything else ("The columns contain invalid values: select, actions"),
-// so restrict the payload to keys the backend accepts.
+// validates every key against properties + removed_properties + created_at +
+// status + attribution columns and 422s on anything else ("The columns contain
+// invalid values: select, actions"), so restrict the payload to keys the
+// backend accepts (mirrors FormSubmissionExportRequest::rules).
 const exportColumnVisibility = computed(() => {
   const validIds = new Set([
     ...(props.form?.properties || []).map(p => p.id),
     ...(props.form?.removed_properties || []).map(p => p.id),
     'created_at',
+    'status',
+    ...ATTRIBUTION_PARAMETERS.map(attributionColumnId),
   ])
   return Object.fromEntries(
     Object.entries(columnVisibility.value).filter(([id]) => validIds.has(id))
