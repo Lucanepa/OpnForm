@@ -31,7 +31,10 @@ export function useWiedisyncLookup(getField, getFormConfig, getDataForm, isAdmin
     const data = getDataForm()
     const email = data?.[field.id]
     const name = field.wiedisync_name_field ? data?.[field.wiedisync_name_field] : null
-    return `${typeof email === 'string' ? email.trim() : ''}\u0000${typeof name === 'string' ? name.trim() : ''}`
+    // The form's language is part of the key: a language switch (multilingual forms) asks
+    // again, so the message under the field follows the language.
+    const language = getFormConfig()?.language ?? ''
+    return `${typeof email === 'string' ? email.trim() : ''}\u0000${typeof name === 'string' ? name.trim() : ''}\u0000${language}`
   }
 
   watch(watched, (key) => {
