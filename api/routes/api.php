@@ -490,6 +490,8 @@ Route::prefix('forms')->name('forms.')->group(function () {
     Route::middleware('protected-form')->group(function () {
         Route::get('{form}/view', [PublicFormController::class, 'view'])->name('view');
         Route::post('{form}/answer', [PublicFormController::class, 'answer'])->name('answer')->middleware(HandlePrecognitiveRequests::class);
+        // KSCW fork: live "check in Wiedisync" for email fields
+        Route::post('{form}/wiedisync-lookup', [\App\Http\Controllers\Kscw\WiedisyncLookupController::class, 'check'])->name('wiedisync-lookup')->middleware('throttle:20,1');
         Route::get('{form}/stripe-connect/get-account', [FormPaymentController::class, 'getAccount'])->name('stripe-connect.get-account')->middleware(HandlePrecognitiveRequests::class);
         Route::post('{form}/stripe-connect/payment-intent', [FormPaymentController::class, 'createIntent'])->name('stripe-connect.create-intent')->middleware(HandlePrecognitiveRequests::class);
     });

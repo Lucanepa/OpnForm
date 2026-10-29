@@ -219,6 +219,13 @@
       :form="form"
     />
 
+    <!--   KSCW fork: check in Wiedisync   -->
+    <WiedisyncLookupOptions
+      v-if="field.type === 'email'"
+      :field="field"
+      :form="form"
+    />
+
     <!--   Text Options   -->
     <div
       v-if="field.type === 'text' && displayBasedOnAdvanced"
@@ -656,10 +663,11 @@ import { format } from 'date-fns'
 import { default as _has } from 'lodash/has'
 import blocksTypes from '~/data/blocks_types.json'
 import BlockMediaOptions from '~/components/open/forms/components/media/BlockMediaOptions.vue'
+import WiedisyncLookupOptions from './WiedisyncLookupOptions.vue' // KSCW fork
 
 export default {
   name: 'FieldOptions',
-  components: { CountryFlag, MatrixFieldOptions, HiddenRequiredDisabled, EditorSectionHeader, PaymentFieldOptions, PlanTag, BlockMediaOptions, SelectOptionEditor, MentionInput, InputMaskOptions },
+  components: { CountryFlag, MatrixFieldOptions, HiddenRequiredDisabled, EditorSectionHeader, PaymentFieldOptions, PlanTag, BlockMediaOptions, SelectOptionEditor, MentionInput, InputMaskOptions, WiedisyncLookupOptions },
   props: {
     field: {
       type: Object,

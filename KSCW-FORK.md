@@ -21,6 +21,17 @@ Upstream's `jhumanj/opnform-api` image ships a stale `composer.lock` (69 `compos
 
 Refreshing the lock (PHP 8.3, from `api/`): `composer update -W --no-install --no-scripts --ignore-platform-req='ext-*' --with spatie/laravel-sitemap:^7.3 --with spatie/laravel-sluggable:^3.7 --with openai-php/client:~0.19.0 --with stripe/stripe-php:^17`, then `composer audit --locked`.
 
+### Check in Wiedisync (since 2026-10-29)
+
+An email field can be set to **"Check email in Wiedisync"** (field options → Wiedisync). A public form then only accepts the address Wiedisync or ClubDesk knows for a current KSCW member, writes the member's section and teams into the stored submission, and — if the form is linked to a private sign-up event in Wiedisync (`events.form_signup_only`, wiedisync migration 434) — signs them in to it.
+
+- Per-field keys on the email property: `wiedisync_lookup`, `wiedisync_name_field` (picks the member when siblings share one address), `wiedisync_section_field`, `wiedisync_teams_field`, `wiedisync_show_values` (default off: section/teams never go back to the browser, only into the submission — hide those fields; don't make them required).
+- API (all new files under `Kscw/` except four one-line hooks): `app/Service/Kscw/WiedisyncMemberLookup.php`, `app/Rules/Kscw/WiedisyncMemberRule.php` (hooked into `AnswerFormRequest::getPropertyRules` `email` case), the fill in `PublicFormController::answer` before the job, `POST /forms/{form}/wiedisync-lookup` (`app/Http/Controllers/Kscw/WiedisyncLookupController.php`, `throttle:20,1`, in `routes/api.php`), the queued `app/Listeners/Kscw/NotifyWiedisyncSignup.php` on `FormSubmitted` (`EventServiceProvider`), `config/kscw.php`, messages `resources/lang/{en,de,fr,it}/kscw.php`. Tests `tests/Feature/Kscw/`.
+- Client: `components/open/forms/fields/components/WiedisyncLookupOptions.vue` (+3 lines in `FieldOptions.vue`), `composables/kscw/useWiedisyncLookup.js` (+2 lines in `BlockRenderer.vue`). Test `test/unit/kscw-wiedisync-lookup.test.ts`.
+- Env (api, api-worker, api-scheduler): `WIEDISYNC_API_URL` (Directus over the Docker network, e.g. `http://directus-kscw:8055` — Wiedisync answers 404 to anything coming through Cloudflare, so the API containers must share a network with Directus), `WIEDISYNC_SERVICE_TOKEN` (plain; Wiedisync holds its SHA-256 in `OPNFORM_SERVICE_TOKEN_HASH`), optional `WIEDISYNC_TIMEOUT` (s, default 5). Unset → the option is dormant (submissions accepted unchecked).
+- Wiedisync down at submit → the email field says "try again in a minute" (refused, never accepted unchecked). The sign-up hand-off retries for ~1.5 h.
+- Rebase conflicts: the four hooks are one-liners marked `KSCW fork`; re-apply them if upstream moved the surrounding code.
+
 ## CI
 
 `.github/workflows/kscw-build.yml`:
@@ -30,7 +41,7 @@ Refreshing the lock (PHP 8.3, from `api/`): `composer update -W --no-install --n
 
 ## Consumer
 
-Used by KSCW's Coolify-managed OpnForm deployment (`opnform-ui` ← client image; `opnform-api`, `api-worker`, `api-scheduler` ← API image). Pin both to the same `kscw-<sha>`; client and API must come from the same commit. After recreating api/ui containers, restart the nginx ingress (it caches upstream IPs) and check a live form via `/api/forms/<slug>`, not just the homepage.
+Used by KSCW's OpnForm deployment (plain Compose in `/opt/opnform` on the Infomaniak VPS since 26.10.2026; Coolify before) (`opnform-ui` ← client image; `opnform-api`, `api-worker`, `api-scheduler` ← API image). Pin both to the same `kscw-<sha>`; client and API must come from the same commit. After recreating api/ui containers, restart the nginx ingress (it caches upstream IPs) and check a live form via `/api/forms/<slug>`, not just the homepage.
 
 ## Conflict-resolution playbook
 

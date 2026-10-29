@@ -153,6 +153,9 @@ class PublicFormController extends Controller
             return $this->handlePartialSubmissions($submissionData, $form);
         }
 
+        // KSCW fork: section/teams of a Wiedisync-checked email come from Wiedisync
+        $submissionData = app(\App\Service\Kscw\WiedisyncMemberLookup::class)->fillSubmission($form, $submissionData);
+
         // Create the job with all data (including metadata)
         $job = new StoreFormSubmissionJob($form, $submissionData);
 
