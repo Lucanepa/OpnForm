@@ -39,9 +39,15 @@
           ref="analyticsScriptRef"
           :form="form"
         />
+        <FormLanguageSwitch
+          v-if="kscwLanguages.length"
+          :languages="kscwLanguages"
+          :model-value="kscwLang"
+          @update:model-value="setKscwLanguage"
+        />
         <OpenCompleteForm
           ref="openCompleteFormRef"
-          :form="form"
+          :form="kscwDisplayForm"
           class="w-full grow min-h-0"
           :dark-mode="darkMode"
           :mode="FormMode.LIVE"
@@ -55,6 +61,8 @@
 
 <script setup>
 import OpenCompleteForm from "~/components/open/forms/OpenCompleteForm.vue"
+import FormLanguageSwitch from '~/components/open/forms/kscw/FormLanguageSwitch.vue' // KSCW fork
+import { useKscwFormLanguage } from '~/composables/kscw/useKscwFormLanguage.js' // KSCW fork
 import { onBeforeRouteLeave } from 'vue-router'
 import {
   disableDarkMode,
@@ -119,6 +127,15 @@ const retryForm = () => {
 if (import.meta.server) {
   await suspense()
 }
+
+// KSCW fork: multilingual forms — what is rendered is the form in the respondent's language
+const openCompleteFormRef = ref(null)
+const {
+  lang: kscwLang,
+  languages: kscwLanguages,
+  displayForm: kscwDisplayForm,
+  setLanguage: setKscwLanguage,
+} = useKscwFormLanguage(form, openCompleteFormRef)
 
 const passwordError = ref(null)
 

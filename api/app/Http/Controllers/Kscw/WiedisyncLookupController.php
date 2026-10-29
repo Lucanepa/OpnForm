@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Kscw;
 
 use App\Http\Controllers\Controller;
 use App\Models\Forms\Form;
+use App\Service\Kscw\FormTranslations;
 use App\Service\Kscw\WiedisyncMemberLookup;
 use Illuminate\Http\Request;
 
@@ -39,6 +40,7 @@ class WiedisyncLookupController extends Controller
         if ($form->language && in_array($form->language, Form::LANGUAGES)) {
             app()->setLocale($form->language);
         }
+        FormTranslations::applyRequestLocale($request, $form);
 
         $result = $lookup->lookup($validated['email'], $validated['name'] ?? null);
         $body = [
