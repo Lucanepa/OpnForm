@@ -250,6 +250,8 @@ Route::group(['middleware' => 'auth.multi'], function () {
             Route::post('/{form}/validate-definition', [FormController::class, 'validateDefinition'])->name('validate-definition');
             Route::post('/{form}/workspace/{workspace}', [FormController::class, 'updateWorkspace'])->name('workspace.update');
             Route::put('/{form}', [FormController::class, 'update'])->name('update');
+            // KSCW fork: "Translate with DeepL" for multilingual forms
+            Route::post('/{form}/kscw-translate', [\App\Http\Controllers\Kscw\FormTranslationController::class, 'translate'])->name('kscw-translate')->middleware('throttle:20,1');
             Route::delete('/{form}', [FormController::class, 'destroy'])->name('destroy');
             Route::get('/{form}/mobile-editor-email', [FormController::class, 'mobileEditorEmail'])->name('mobile-editor-email');
 

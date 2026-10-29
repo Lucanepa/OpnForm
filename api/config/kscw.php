@@ -13,4 +13,8 @@ return [
         'service_token' => env('WIEDISYNC_SERVICE_TOKEN'),
         'timeout' => (int) env('WIEDISYNC_TIMEOUT', 5),
     ],
+    'deepl' => [
+        // "Translate with DeepL" in the form editor. A key ending in ":fx" = DeepL API Free.
+        'api_key' => env('DEEPL_API_KEY'),
+    ],
 ];

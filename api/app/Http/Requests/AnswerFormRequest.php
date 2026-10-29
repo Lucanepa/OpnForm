@@ -299,6 +299,8 @@ class AnswerFormRequest extends FormRequest
         if ($this->form?->language && in_array($this->form->language, Form::LANGUAGES)) {
             app()->setLocale($this->form->language);
         }
+        // KSCW fork: the respondent's language of a multilingual form
+        \App\Service\Kscw\FormTranslations::applyRequestLocale($this, $this->form);
 
 
         $receivedData = $this->toArray();

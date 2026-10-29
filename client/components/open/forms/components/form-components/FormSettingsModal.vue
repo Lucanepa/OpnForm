@@ -28,6 +28,15 @@
       <FormSecurityAccess />
     </SettingsModalPage>
 
+    <!-- KSCW fork: multilingual forms -->
+    <SettingsModalPage
+      id="translations"
+      label="Translations"
+      icon="i-heroicons-language"
+    >
+      <FormTranslationsSettings />
+    </SettingsModalPage>
+
     <SettingsModalPage
       id="seo"
       label="SEO & Social Sharing"
@@ -70,6 +79,7 @@ import SettingsModalPage from '~/components/pages/settings/SettingsModalPage.vue
 const FormInformation = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormInformation.vue'))
 const FormSubmissionSettings = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormSubmissionSettings.vue'))
 const FormSecurityAccess = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormSecurityAccess.vue'))
+const FormTranslationsSettings = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormTranslationsSettings.vue')) // KSCW fork
 const FormCustomSeo = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormCustomSeo.vue'))
 const FormCustomCode = defineAsyncComponent(() => import('~/components/open/forms/components/form-components/FormCustomCode.vue'))
 const ComputedVariablesTab = defineAsyncComponent(() => import('~/components/open/forms/components/computed-variables/ComputedVariablesTab.vue'))

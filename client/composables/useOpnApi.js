@@ -1,3 +1,4 @@
+import { addKscwFormLocale } from '~/lib/kscw/request-locale.js'
 import { getDomain, getHost, customDomainUsed } from "~/lib/utils.js"
 
 function addAuthHeader(request, options) {
@@ -60,6 +61,7 @@ export function getOpnRequestsOptions(request, opts) {
   addAuthHeader(request, opts)
   addPasswordToFormRequest(request, opts)
   addCustomDomainHeader(request, opts)
+  addKscwFormLocale(request, opts) // KSCW fork: multilingual forms
 
   if (!opts.baseURL) {
     // Use privateApiBase only on server side, fallback to public.apiBase on client
