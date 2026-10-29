@@ -51,6 +51,7 @@ class EventServiceProvider extends ServiceProvider
         FormSubmitted::class => [
             NotifyFormSubmission::class,
             \App\Listeners\Forms\InvalidateFormSubmissionCache::class,
+            \App\Listeners\Kscw\NotifyWiedisyncSignup::class, // KSCW fork
         ],
         FormSubmissionDeleting::class => [
             DeleteFormSubmissionFiles::class,

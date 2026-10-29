@@ -251,7 +251,8 @@ class AnswerFormRequest extends FormRequest
 
                 return ['array'];
             case 'email':
-                return ['email:filter'];
+                // KSCW fork: optional "check in Wiedisync" (App\Rules\Kscw\WiedisyncMemberRule)
+                return array_merge(['email:filter'], \App\Rules\Kscw\WiedisyncMemberRule::for($property, $this->all()));
             case 'date':
                 if (isset($property['date_range']) && $property['date_range']) {
                     $this->requestRules[$property['id'] . '.*'] = $this->getRulesForDate($property);

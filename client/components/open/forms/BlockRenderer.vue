@@ -131,6 +131,7 @@
 
 <script setup>
 import { refDebounced } from '@vueuse/core'
+import { useWiedisyncLookup } from '~/composables/kscw/useWiedisyncLookup.js'
 import ClientOnlyWrapper from '~/components/global/ClientOnlyWrapper.vue'
 import { useComponentRegistry } from '~/composables/components/useComponentRegistry'
 import TextBlock from '~/components/forms/core/TextBlock.vue'
@@ -180,6 +181,9 @@ watch(needsMentionParser, (isNeeded) => {
 
 // Use centralized fieldState from manager
 const fieldState = computed(() => props.formManager?.fieldState)
+
+// KSCW fork: live "check in Wiedisync" on email fields
+useWiedisyncLookup(() => props.block, () => form.value, () => dataForm.value, isAdminPreview)
 
 const { getFormComponent } = useComponentRegistry()
 
