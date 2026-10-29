@@ -32,6 +32,18 @@ An email field can be set to **"Check email in Wiedisync"** (field options → W
 - Wiedisync down at submit → the email field says "try again in a minute" (refused, never accepted unchecked). The sign-up hand-off retries for ~1.5 h.
 - Rebase conflicts: the four hooks are one-liners marked `KSCW fork`; re-apply them if upstream moved the surrounding code.
 
+### Multilingual forms with DeepL (since 2026-10-30)
+
+Forms are always written in **English**. Settings → **Translations**: enable Deutsch / Français / Italiano, press **Translate missing with DeepL**, correct any text, save the form. Each translation remembers the English it came from; when the English changes it is marked "English changed" and "Translate missing" picks it up again.
+
+- Public form: a language switch (EN + enabled languages with texts) above the form, starting in the visitor's browser language (or `?lang=de`). Answers typed so far survive a switch.
+- Only what is shown changes. Select options keep their English `name` (stored value, logic conditions, exports); the translation rides along as `kscw_label` (`client/lib/forms/field-options.js`).
+- Storage: `forms.translations.kscw = {languages, texts: {de: {"form.title": {t, s}, "field.<id>.option.<English>": {t, s}, …}}}` in the existing `translations` json column — no migration. Upstream's own `translations.focused_next_button_text` stays untouched.
+- The chosen language is sent as `X-Form-Locale` on public form requests (`client/lib/kscw/request-locale.js`, one line in `useOpnApi.js`); `App\Service\Kscw\FormTranslations::applyRequestLocale` (one line in `AnswerFormRequest`) switches validation and "check in Wiedisync" messages to it when the form offers that language.
+- Translated: form title, description, submit / fill-again buttons, text after submission; field labels, placeholders, help texts, text blocks, page-break buttons, select / multi-select choices. Not (yet): matrix rows/columns (their names are stored keys), rating/scale labels, emails to respondents.
+- API: `POST /open/forms/{form}/kscw-translate` (`App\Http\Controllers\Kscw\FormTranslationController`, form editors only, `throttle:20,1`) translates the texts the editor sends via `App\Service\Kscw\DeeplTranslator` (source EN, `formality: prefer_less`, HTML texts with `tag_handling=html`, ≤ 200 000 chars per run). Env `DEEPL_API_KEY` (a key ending in `:fx` = API Free → api-free.deepl.com). Unset → the editor says so (503).
+- Client files: `lib/kscw/form-translations.js`, `composables/kscw/useKscwFormLanguage.js`, `components/open/forms/kscw/FormLanguageSwitch.vue`, `components/open/forms/components/form-components/FormTranslationsSettings.vue` (+ a tab in `FormSettingsModal.vue`), a few lines in `pages/forms/[slug]/index.vue`. Tests `test/unit/kscw-form-translations.test.ts`, `api/tests/Feature/Kscw/FormTranslationTest.php`.
+
 ## CI
 
 `.github/workflows/kscw-build.yml`:
