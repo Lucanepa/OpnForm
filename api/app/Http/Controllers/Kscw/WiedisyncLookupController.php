@@ -48,7 +48,8 @@ class WiedisyncLookupController extends Controller
             'message' => WiedisyncMemberLookup::message($result['status'], $field),
         ];
         if ($result['status'] === WiedisyncMemberLookup::FOUND && !empty($field['wiedisync_show_values'])) {
-            $body['fill'] = WiedisyncMemberLookup::mappedValues($form, $field, $result);
+            $typed = isset($field['wiedisync_name_field']) ? [$field['wiedisync_name_field'] => $validated['name'] ?? null] : [];
+            $body['fill'] = WiedisyncMemberLookup::mappedValues($form, $field, $result, $typed);
         }
 
         return response()->json($body);
