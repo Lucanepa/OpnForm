@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
  * An email field with `wiedisync_lookup` only accepts an address that Wiedisync (the
  * club's member app) or ClubDesk knows for a current member. Optional per-field keys:
  *   - wiedisync_name_field     id of the name field: picks the member when a family shares
- *                              one address
+ *                              one address, and gets the member's name when left empty
  *   - wiedisync_section_field  id of a field that gets the member's section(s)
  *   - wiedisync_teams_field    id of a field that gets the member's team(s)
  *   - wiedisync_show_values    true = the live check also fills section/teams in the
@@ -72,7 +72,7 @@ class WiedisyncMemberLookup
     }
 
     /**
-     * @return array{status: string, sections?: string[], teams?: string[]}
+     * @return array{status: string, name?: string, sections?: string[], teams?: string[]}
      */
     public function lookup(?string $email, ?string $name = null): array
     {
@@ -111,6 +111,7 @@ class WiedisyncMemberLookup
 
         $result = ['status' => $status];
         if ($status === self::FOUND) {
+            $result['name'] = is_string($response->json('name')) ? trim($response->json('name')) : '';
             $result['sections'] = self::strings($response->json('sections'));
             $result['teams'] = self::strings($response->json('teams'));
         }
@@ -147,18 +148,26 @@ class WiedisyncMemberLookup
             }
             $result = $this->lookup($email, self::nameValue($field, $data));
             if ($result['status'] === self::FOUND) {
-                $data = array_merge($data, self::mappedValues($form, $field, $result));
+                $data = array_merge($data, self::mappedValues($form, $field, $result, $data));
             }
         }
 
         return $data;
     }
 
-    /** Values for the mapped fields, keyed by field id and shaped for each field's type. */
-    public static function mappedValues(Form $form, array $emailField, array $result): array
+    /**
+     * Values for the mapped fields, keyed by field id and shaped for each field's type.
+     * Section and teams always come from Wiedisync; the name field only gets the member's
+     * name while `$data` has it empty — a typed name is the respondent's and stays.
+     */
+    public static function mappedValues(Form $form, array $emailField, array $result, array $data = []): array
     {
         $fields = collect($form->properties ?? [])->keyBy('id');
         $values = [];
+        $nameId = $emailField['wiedisync_name_field'] ?? null;
+        if ($nameId && $fields->has($nameId) && filled($result['name'] ?? null) && self::nameValue($emailField, $data) === null) {
+            $values[$nameId] = self::shapeForField($fields[$nameId], [$result['name']]);
+        }
         foreach (['wiedisync_section_field' => 'sections', 'wiedisync_teams_field' => 'teams'] as $key => $source) {
             $targetId = $emailField[$key] ?? null;
             if (!$targetId || !$fields->has($targetId)) {

@@ -129,6 +129,35 @@ describe('submit', function () {
     });
 });
 
+describe('name field', function () {
+    it('fills an empty name from Wiedisync on submit, keeps a typed one', function () {
+        fakeWiedisync(['status' => 'found', 'name' => 'Anna Müller', 'sections' => ['Volleyball'], 'teams' => ['H1']]);
+        [$form, $email, $name] = wiedisyncForm($this);
+
+        $this->postJson(route('forms.answer', $form->slug), [$email['id'] => 'anna@example.com'])->assertSuccessful();
+        expect($form->submissions()->latest('id')->first()->data[$name['id']])->toBe('Anna Müller');
+
+        $this->postJson(route('forms.answer', $form->slug), [$email['id'] => 'anna@example.com', $name['id'] => 'Anna M.'])->assertSuccessful();
+        expect($form->submissions()->latest('id')->first()->data[$name['id']])->toBe('Anna M.');
+    });
+
+    it('live check fills the name only with show-values on and only while it is empty', function () {
+        fakeWiedisync(['status' => 'found', 'name' => 'Anna Müller', 'sections' => ['Volleyball'], 'teams' => ['H1']]);
+        [$form, $email, $name, $section] = wiedisyncForm($this, ['wiedisync_show_values' => true]);
+
+        $this->postJson(route('forms.wiedisync-lookup', $form->slug), ['field_id' => $email['id'], 'email' => 'anna@example.com'])
+            ->assertJsonPath('fill.' . $name['id'], 'Anna Müller')
+            ->assertJsonPath('fill.' . $section['id'], 'Volleyball');
+        $this->postJson(route('forms.wiedisync-lookup', $form->slug), ['field_id' => $email['id'], 'email' => 'anna@example.com', 'name' => 'Anna'])
+            ->assertJsonMissingPath('fill.' . $name['id']);
+
+        $this->actingAsGuest();
+        [$private, $privateEmail] = wiedisyncForm($this);
+        $this->postJson(route('forms.wiedisync-lookup', $private->slug), ['field_id' => $privateEmail['id'], 'email' => 'anna@example.com'])
+            ->assertExactJson(['status' => 'found', 'message' => null]);
+    });
+});
+
 describe('live check', function () {
     it('answers found without revealing section and teams by default', function () {
         fakeWiedisync(['status' => 'found', 'sections' => ['Volleyball'], 'teams' => ['H1']]);

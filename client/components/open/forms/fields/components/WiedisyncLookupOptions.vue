@@ -18,7 +18,7 @@
         :options="fieldOptions(['text'])"
         label="Name field"
         clearable
-        help="Picks the right member when siblings share one email address."
+        help="Picks the right member when siblings share one email address. Left empty, it gets the member's name from Wiedisync."
       />
       <select-input
         :form="field"
@@ -40,7 +40,7 @@
         :form="field"
         name="wiedisync_show_values"
         label="Show section and teams while filling in"
-        help="Off (recommended for public links): they are only saved with the submission, so the form never shows a stranger someone's team. Hide those two fields then."
+        help="Also fills an empty name field. Off (recommended for public links): name, section and teams are only saved with the submission, so the form never shows a stranger who an email belongs to. Hide the section and teams fields then."
       />
     </template>
   </div>
